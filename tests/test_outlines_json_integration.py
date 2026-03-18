@@ -276,6 +276,27 @@ async def test_chat_completion_json_object_does_not_set_json_schema(
 
 
 @pytest.mark.asyncio
+async def test_chat_completion_without_response_format_has_no_json_schema(
+    monkeypatch, patched_server
+):
+    engine = _make_engine()
+
+    async def _get_engine(_model):
+        return engine
+
+    monkeypatch.setattr(server, "get_engine_for_model", _get_engine)
+
+    request = ChatCompletionRequest(
+        model="test-model",
+        messages=[{"role": "user", "content": "Normal chat"}],
+    )
+
+    await server.create_chat_completion(request, _FakeHttpRequest(), True)
+    kwargs = engine.chat.await_args.kwargs
+    assert "json_schema" not in kwargs
+
+
+@pytest.mark.asyncio
 async def test_chat_completion_streaming_forwards_json_schema(
     monkeypatch, patched_server
 ):
