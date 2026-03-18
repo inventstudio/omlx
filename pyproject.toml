@@ -67,6 +67,9 @@ dependencies = [
 mcp = [
     "mcp>=1.0.0",
 ]
+structured = [
+    "outlines>=1.0.0",
+]
 modelscope = [
     "modelscope>=1.10.0",
 ]

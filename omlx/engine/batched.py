@@ -309,6 +309,7 @@ class BatchedEngine(BaseEngine):
             frequency_penalty=kwargs.get("frequency_penalty", 0.0),
             stop=stop or [],
             thinking_budget=kwargs.get("thinking_budget", None),
+            json_schema=kwargs.get("json_schema", None),
         )
 
         output = await self._engine.generate(
@@ -374,6 +375,7 @@ class BatchedEngine(BaseEngine):
             frequency_penalty=kwargs.get("frequency_penalty", 0.0),
             stop=stop or [],
             thinking_budget=kwargs.get("thinking_budget", None),
+            json_schema=kwargs.get("json_schema", None),
         )
 
         request_id = await self._engine.add_request(

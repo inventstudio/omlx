@@ -1642,6 +1642,31 @@ class Scheduler:
                 )
                 logits_processors.append(processor)
 
+        # Add Outlines JSON Schema logits processor for constrained decoding
+        if sampling_params.json_schema is not None:
+            try:
+                from .api.json_logits_processor import (
+                    OutlinesJSONLogitsProcessor,
+                    is_outlines_available,
+                )
+
+                if is_outlines_available():
+                    json_processor = OutlinesJSONLogitsProcessor(
+                        schema=sampling_params.json_schema,
+                        tokenizer=self.tokenizer,
+                    )
+                    logits_processors.append(json_processor)
+                    logger.info("Outlines JSON Schema enforcement active for request")
+                else:
+                    logger.warning(
+                        "json_schema requested but Outlines not installed. "
+                        "Falling back to prompt-based JSON guidance. "
+                        "Install with: pip install 'outlines>=1.0.0'"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to create Outlines JSON processor: {e}. "
+                               "Falling back to prompt-based JSON guidance.")
+
         return sampler, logits_processors
 
     def _resolve_think_end_token_ids(self) -> list[int] | None:

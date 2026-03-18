@@ -1834,6 +1834,13 @@ async def create_chat_completion(
     if thinking_budget is not None:
         chat_kwargs["thinking_budget"] = thinking_budget
 
+    # Add JSON Schema for Outlines constrained decoding (if available)
+    if response_format:
+        from .api.json_logits_processor import extract_json_schema, is_outlines_available
+        json_schema = extract_json_schema(response_format)
+        if json_schema and is_outlines_available():
+            chat_kwargs["json_schema"] = json_schema
+
     # Add tools if provided (includes MCP tools)
     if tools_for_template:
         chat_kwargs["tools"] = tools_for_template
@@ -3111,6 +3118,13 @@ async def create_response(
     thinking_budget = _resolve_thinking_budget(request, request.model)
     if thinking_budget is not None:
         chat_kwargs["thinking_budget"] = thinking_budget
+
+    # Add JSON Schema for Outlines constrained decoding (if available)
+    if response_format:
+        from .api.json_logits_processor import extract_json_schema, is_outlines_available
+        json_schema = extract_json_schema(response_format)
+        if json_schema and is_outlines_available():
+            chat_kwargs["json_schema"] = json_schema
 
     if tools_for_template:
         chat_kwargs["tools"] = tools_for_template

@@ -624,6 +624,7 @@ class VLMBatchedEngine(BaseEngine):
             stop=stop or [],
             stop_token_ids=extra_stop_ids or None,
             thinking_budget=kwargs.get("thinking_budget", None),
+            json_schema=kwargs.get("json_schema", None),
         )
 
         output = await self._engine.generate(
@@ -686,6 +687,7 @@ class VLMBatchedEngine(BaseEngine):
             stop=stop or [],
             stop_token_ids=extra_stop_ids or None,
             thinking_budget=kwargs.get("thinking_budget", None),
+            json_schema=kwargs.get("json_schema", None),
         )
 
         request_id = await self._engine.add_request(

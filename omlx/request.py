@@ -71,6 +71,9 @@ class SamplingParams:
     # Thinking budget (None = unlimited thinking)
     thinking_budget: Optional[int] = None
 
+    # JSON Schema for Outlines constrained decoding (None = disabled)
+    json_schema: Optional[Dict[str, Any]] = None
+
     def __post_init__(self):
         if self.stop is None:
             self.stop = []
