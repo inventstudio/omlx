@@ -68,7 +68,7 @@ mcp = [
     "mcp>=1.0.0",
 ]
 structured = [
-    "outlines>=1.0.0",
+    "outlines>=1.0.0,<1.2.0",
 ]
 modelscope = [
     "modelscope>=1.10.0",

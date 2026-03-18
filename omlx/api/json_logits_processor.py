@@ -46,10 +46,11 @@ def _get_or_create_outlines_processor(schema: dict, tokenizer: Any) -> Any:
     """
     try:
         from outlines.processors.structured import JSONLogitsProcessor
+        from outlines.models import TransformerTokenizer
     except ImportError:
         raise ImportError(
             "Outlines is required for token-level JSON schema enforcement. "
-            "Install it with: pip install 'outlines>=1.0.0'\n"
+            "Install it with: pip install 'outlines>=1.0.0,<1.2.0'\n"
             "Without Outlines, oMLX falls back to prompt-based JSON guidance."
         )
 
@@ -63,8 +64,26 @@ def _get_or_create_outlines_processor(schema: dict, tokenizer: Any) -> Any:
         oldest_key = next(iter(_processor_cache))
         del _processor_cache[oldest_key]
 
-    schema_str = json.dumps(schema)
-    processor = JSONLogitsProcessor(schema_str, tokenizer)
+    # mlx-lm uses TokenizerWrapper which wraps an HF tokenizer in `_tokenizer`.
+    # Outlines expects a tokenizer implementing its Tokenizer protocol.
+    # TransformerTokenizer adapts HF tokenizers to this protocol.
+    base_tokenizer = tokenizer
+    if (
+        tokenizer.__class__.__name__ == "TokenizerWrapper"
+        and hasattr(tokenizer, "_tokenizer")
+    ):
+        base_tokenizer = tokenizer._tokenizer
+    if hasattr(base_tokenizer, "vocabulary") and hasattr(base_tokenizer, "convert_token_to_string"):
+        outlines_tokenizer = base_tokenizer
+    else:
+        outlines_tokenizer = TransformerTokenizer(base_tokenizer)
+
+    # Outlines requires the tensor backend name to map array ops correctly.
+    processor = JSONLogitsProcessor(
+        schema=schema,
+        tokenizer=outlines_tokenizer,
+        tensor_library_name="mlx",
+    )
     _processor_cache[cache_key] = processor
 
     logger.info(f"Compiled Outlines JSON processor for schema (cache size: {len(_processor_cache)})")
@@ -152,6 +171,7 @@ class OutlinesJSONLogitsProcessor:
 def is_outlines_available() -> bool:
     """Check if Outlines is installed and importable."""
     try:
+        from outlines.models import TransformerTokenizer  # noqa: F401
         from outlines.processors.structured import JSONLogitsProcessor  # noqa: F401
         return True
     except ImportError:
