@@ -157,12 +157,11 @@ def test_wrapper_preserves_1d_and_2d_logits_shape(monkeypatch):
     assert two_d.shape == (1, 32)
 
 
-def test_outlines_processor_cache_hits_same_schema(monkeypatch):
+def test_outlines_processor_is_fresh_per_request(monkeypatch):
     pytest.importorskip("outlines")
     import outlines.models as outlines_models
     import outlines.processors.structured as outlines_structured
 
-    json_lp._processor_cache.clear()
     calls = {"count": 0}
 
     class FakeJsonProcessor:
@@ -187,9 +186,8 @@ def test_outlines_processor_cache_hits_same_schema(monkeypatch):
     first = json_lp._get_or_create_outlines_processor(schema, tokenizer)
     second = json_lp._get_or_create_outlines_processor(schema, tokenizer)
 
-    assert first is second
-    assert calls["count"] == 1
-    json_lp._processor_cache.clear()
+    assert first is not second
+    assert calls["count"] == 2
 
 
 @pytest.mark.asyncio

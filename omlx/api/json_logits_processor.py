@@ -14,24 +14,18 @@ Requires: pip install "outlines>=1.0.0"
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger("omlx.api.json_logits_processor")
 
-# Cache compiled processors per schema to avoid re-compilation overhead.
-# Outlines compiles JSON schema -> regex -> state machine on first use,
-# which can take 1-5 seconds. Caching makes subsequent requests instant.
-_processor_cache: Dict[str, Any] = {}
-_MAX_CACHE_SIZE = 32
-
-
-def _schema_cache_key(schema: dict) -> str:
-    """Create a stable cache key from a JSON schema dict."""
-    return json.dumps(schema, sort_keys=True, separators=(",", ":"))
-
-
 def _get_or_create_outlines_processor(schema: dict, tokenizer: Any) -> Any:
-    """Get a cached Outlines JSONLogitsProcessor or create a new one.
+    """Create a fresh Outlines JSONLogitsProcessor instance.
+
+    IMPORTANT:
+    Outlines processors are stateful (FSM advances during decoding). Reusing
+    the same processor instance across requests can leak terminal FSM state
+    into later requests and trigger invalid logits masking / runtime errors.
+    We intentionally return a new processor per request for state isolation.
 
     Args:
         schema: JSON Schema dict (the "schema" field from response_format).
@@ -54,16 +48,6 @@ def _get_or_create_outlines_processor(schema: dict, tokenizer: Any) -> Any:
             "Without Outlines, oMLX falls back to prompt-based JSON guidance."
         )
 
-    cache_key = _schema_cache_key(schema)
-
-    if cache_key in _processor_cache:
-        return _processor_cache[cache_key]
-
-    # Evict oldest entries if cache is full
-    if len(_processor_cache) >= _MAX_CACHE_SIZE:
-        oldest_key = next(iter(_processor_cache))
-        del _processor_cache[oldest_key]
-
     # mlx-lm uses TokenizerWrapper which wraps an HF tokenizer in `_tokenizer`.
     # Outlines expects a tokenizer implementing its Tokenizer protocol.
     # TransformerTokenizer adapts HF tokenizers to this protocol.
@@ -84,9 +68,7 @@ def _get_or_create_outlines_processor(schema: dict, tokenizer: Any) -> Any:
         tokenizer=outlines_tokenizer,
         tensor_library_name="mlx",
     )
-    _processor_cache[cache_key] = processor
-
-    logger.info(f"Compiled Outlines JSON processor for schema (cache size: {len(_processor_cache)})")
+    logger.debug("Created fresh Outlines JSON processor for request")
     return processor
 
 
